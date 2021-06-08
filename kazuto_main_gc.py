@@ -26,6 +26,7 @@ from grad_cam import (
     occlusion_sensitivity,
 )
 import pdb
+from PIL import Image, ImageDraw, ImageFont
 
 # if a model includes LSTM, such as in image captioning,
 # torch.backends.cudnn.enabled = False
@@ -54,13 +55,20 @@ class KazutoMain:
         return images, raw_images
 
 
-    def get_classtable(self):
+    def get_classtable(self, dataset):
         classes = []
-        with open("synset_words.txt") as lines:
-            for line in lines:
-                line = line.strip().split(" ", 1)[1]
-                line = line.split(", ", 1)[0].replace(" ", "_")
-                classes.append(line)
+        if dataset == "imagenet":
+            with open("synset_words.txt") as lines:
+                for line in lines:
+                    line = line.strip().split(" ", 1)[1]
+                    line = line.split(", ", 1)[0].replace(" ", "_")
+                    classes.append(line)
+        else:
+            with open("categories_places365.txt") as lines:
+                for line in lines:
+                    line = line.strip().split(" ", 1)[0]
+                    line = line.split("/")[2]
+                    classes.append(line)
         return classes
 
 
@@ -85,6 +93,7 @@ class KazutoMain:
 
 
     def save_gradcam(self, filename, gcam, raw_image, paper_cmap=False):
+        pdb.set_trace()
         gcam = gcam.cpu().numpy()
         cmap = cm.jet_r(gcam)[..., :3] * 255.0
         if paper_cmap:
@@ -128,7 +137,7 @@ class KazutoMain:
     # @click.option("-o", "--output-dir", type=str, default="./results")
     # @click.option("--cuda/--cpu", default=True)
     # def demo1(image_paths, target_layer, arch, topk, output_dir, cuda):
-    def demo1(self, image_paths, target_layer, model, arch, output_dir, ground_truth_class, cuda=True, topk=1):
+    def demo1(self, image_paths, target_layer, model, arch, output_dir_list, dataset, class_index, class_name, cuda=True, topk=1):
         """
         Visualize model responses given multiple images
         """
@@ -136,7 +145,7 @@ class KazutoMain:
         device = self.get_device(cuda)
 
         # Synset words
-        classes = self.get_classtable()
+        classes = self.get_classtable(dataset)
 
         # Model from torchvision
         # model = models.__dict__[arch](pretrained=True)
@@ -205,78 +214,82 @@ class KazutoMain:
 
         # =========================================================================
         print("Grad-CAM/Guided Backpropagation/Guided Grad-CAM:")
-
+        ### For predicted class
         gcam = GradCAM(model=model)
         _ = gcam.forward(images)
 
         # gbp = GuidedBackPropagation(model=model)
         # _ = gbp.forward(images)
 
-        if not ground_truth_class:
-            for i in range(topk):
-                # Guided Backpropagation
-                # gbp.backward(ids=ids[:, [i]])
-                # gradients = gbp.generate()
+        
+        for i in range(topk):
+            # Guided Backpropagation
+            # gbp.backward(ids=ids[:, [i]])
+            # gradients = gbp.generate()
 
-                # Grad-CAM
-                # pdb.set_trace()
-                gcam.backward(ids=ids[:, [i]])
-                regions = gcam.generate(target_layer=target_layer)
-
-                for j in range(len(images)):
-                    print("\t#{}: {} ({:.5f})".format(j, classes[ids[j, i]], probs[j, i]))
-
-                    # Guided Backpropagation
-                    # self.save_gradient(
-                    #     filename=osp.join(
-                    #         output_dir,
-                    #         "{}-{}-guided-{}.png".format(j, arch, classes[ids[j, i]]),
-                    #     ),
-                    #     gradient=gradients[j],
-                    # )
-
-                    # Grad-CAM
-                    self.save_gradcam(
-                        filename=osp.join(
-                            output_dir,
-                            "{}-{}-gradcam-{}-{}.png".format(
-                                j, arch, target_layer, classes[ids[j, i]]
-                            ),
-                        ),
-                        gcam=regions[j, 0],
-                        raw_image=raw_images[j],
-                    )
-
-                    # Guided Grad-CAM
-                    # self.save_gradient(
-                    #     filename=osp.join(
-                    #         output_dir,
-                    #         "{}-{}-guided_gradcam-{}-{}.png".format(
-                    #             j, arch, target_layer, classes[ids[j, i]]
-                    #         ),
-                    #     ),
-                    #     gradient=torch.mul(regions, gradients)[j],
-                    # )
-        else:
+            # Grad-CAM
             # pdb.set_trace()
-            ground_truth_id = torch.tensor(classes.index(ground_truth_class)).unsqueeze(dim=0).unsqueeze(dim=0).to(device)
-            gcam.backward(ids=ground_truth_id)
+            gcam.backward(ids=ids[:, [i]])
             regions = gcam.generate(target_layer=target_layer)
 
             for j in range(len(images)):
-                # print("\t#{}: {} ({:.5f})".format(j, classes[ids[j, i]], probs[j, i]))
+                print("\t#{}: {} ({:.5f})".format(j, classes[ids[j, i]], probs[j, i]))
+
+                # Guided Backpropagation
+                # self.save_gradient(
+                #     filename=osp.join(
+                #         output_dir,
+                #         "{}-{}-guided-{}.png".format(j, arch, classes[ids[j, i]]),
+                #     ),
+                #     gradient=gradients[j],
+                # )
 
                 # Grad-CAM
-                self.save_gradcam(
-                    filename=osp.join(
-                        output_dir,
+                filename = osp.join(
+                        output_dir_list[j],
+                        'predicted_class',
                         "{}-{}-gradcam-{}-{}.png".format(
-                            j, arch, target_layer, ground_truth_class
+                            j, arch, target_layer, classes[ids[j, i]]
                         ),
-                    ),
+                    )
+                self.save_gradcam(
+                    filename=filename,
                     gcam=regions[j, 0],
                     raw_image=raw_images[j],
                 )
+
+                # Guided Grad-CAM
+                # self.save_gradient(
+                #     filename=osp.join(
+                #         output_dir,
+                #         "{}-{}-guided_gradcam-{}-{}.png".format(
+                #             j, arch, target_layer, classes[ids[j, i]]
+                #         ),
+                #     ),
+                #     gradient=torch.mul(regions, gradients)[j],
+                # )
+        ### For ground truth class
+        gcam2 = GradCAM(model=model)
+        _2 = gcam2.forward(images)
+        ground_truth_id = torch.tensor(class_index).unsqueeze(dim=0).unsqueeze(dim=0).to(device)
+        gcam2.backward(ids=ground_truth_id)
+        regions = gcam2.generate(target_layer=target_layer)
+
+        for j in range(len(images)):
+            # print("\t#{}: {} ({:.5f})".format(j, classes[ids[j, i]], probs[j, i]))
+
+            # Grad-CAM
+            self.save_gradcam(
+                filename=osp.join(
+                    output_dir_list[j],
+                    'ground_truth',
+                    "{}-{}-gradcam-{}-{}.png".format(
+                        j, arch, target_layer, class_name
+                    ),
+                ),
+                gcam=regions[j, 0],
+                raw_image=raw_images[j],
+            )
 
 
     # @main.command()
