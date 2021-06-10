@@ -21,13 +21,13 @@ class GCUtil:
         #     data = json.load(f)
         kazuto = KazutoMain()
         classes = kazuto.get_classtable(dataset)
-        pdb.set_trace()
+        # pdb.set_trace()
         if dataset == "imagenet":
             for class_name in class_list:
                 class_index = classes.index(class_name)
                 class_folder_name = data[str(class_index)][0] # eg: n02007558
                 folder_files_pattern = os.path.join(valdir, class_folder_name, '*.*')
-                image_paths = random.sample(glob.glob(folder_files_pattern),1) # images selected randomly from the folder
+                image_paths = random.sample(glob.glob(folder_files_pattern),2) # images selected randomly from the folder
                 class_folder_path = os.path.join(output_dir, class_folder_name) # 'GRADCAM_MAPS/resnet18/n02007558'
                 Path(class_folder_path).mkdir(parents=True, exist_ok=True)
                 image_folder_inside_class_folder_list = []
@@ -43,4 +43,4 @@ class GCUtil:
                 if int(epoch)<10:
                   epoch = '0'+epoch
                 # kazuto.demo1(image_paths, layer_name, model, arch+"-{ep:02}".format(ep=epoch), image_folder_inside_class_folder_list, dataset, class_index, class_name)
-                kazuto.demo1(image_paths, layer_name, model, arch+"-"+epoch, image_folder_inside_class_folder_list, dataset, class_index, class_name)
+                kazuto.demo1(image_paths, layer_name, model, arch+"-"+epoch, image_folder_inside_class_folder_list, dataset, class_index, class_name, epoch)
