@@ -6,10 +6,12 @@ import os
 import glob
 import random
 from pathlib import Path
+import os.path as osp
 
 import sys
 sys.path.append('/srv/share3/mummettuguli3/code/')
 from utils.kazuto_main_gc import KazutoMain
+from utils.image_helper import ImageHelper
 
 with open('imagenet_class_index.json') as f: #this is opening file in thesis folder
     data = json.load(f)
@@ -19,6 +21,7 @@ class GCUtil:
         self.image_paths_for_classes = {}
         self.output_folder_paths_for_classes = {}
         self.kazuto = KazutoMain()
+        self.image_helper = ImageHelper()
 
     def generate_grad_cam(self, model, arch, epoch: str, class_list, layer_name, dataset):
         # eg output_dir : 'GRADCAM_MAPS/resnet18/'
@@ -51,6 +54,7 @@ class GCUtil:
                 if int(epoch)<10:
                     epoch = '0'+epoch
                 # kazuto.demo1(image_paths, layer_name, model, arch+"-{ep:02}".format(ep=epoch), image_folder_inside_class_folder_list, dataset, class_index, class_name)
+                
                 self.kazuto.demo1(image_paths, layer_name, model, arch+"-"+epoch, output_paths, dataset, class_index, class_name, epoch)
 
     def create_output_folder(self, output_dir, dataset, class_list, valdir, sample_count):
@@ -80,7 +84,16 @@ class GCUtil:
                     Path(image_folder_inside_class_folder_path).mkdir(parents=True, exist_ok=True)
                     Path(image_predicted_class_folder).mkdir(parents=True, exist_ok=True)
                     Path(image_ground_truth_folder).mkdir(parents=True, exist_ok=True)
-                    self.output_folder_paths_for_classes[class_name].append(image_folder_inside_class_folder_path) #?
+                    self.output_folder_paths_for_classes[class_name].append(image_folder_inside_class_folder_path) 
+
+                    image = self.image_helper.open_image(j)
+                    # image, raw_image = self.kazuto.preprocess(j)
+                    self.image_helper.add_text_save_file(image, class_name, osp.join(
+                        image_folder_inside_class_folder_path,
+                        "{}.png".format(
+                            class_name
+                        ),
+                    ))
         else:
             for class_folder_name in class_list:      
                 folder_files_pattern = os.path.join(valdir, class_folder_name, '*.*')

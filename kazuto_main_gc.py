@@ -9,6 +9,7 @@ from __future__ import print_function
 
 import copy
 import os.path as osp
+from utils.image_helper import ImageHelper
 
 # import click
 import cv2
@@ -102,6 +103,7 @@ class KazutoMain:
         else:
             gcam = (cmap.astype(np.float) + raw_image.astype(np.float)) / 2
         image = np.uint8(gcam)
+        # ImageHelper().add_text_save_file(image, text, filename)
         org = (5, 15)
         font = cv2.FONT_HERSHEY_SIMPLEX
         fontScale = 0.5
