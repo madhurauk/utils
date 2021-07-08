@@ -173,6 +173,7 @@ class KazutoMain:
         for i in range(topk):
 
             # Grad-CAM
+            # pdb.set_trace()
             gcam.backward(ids=ids[:, [i]])
             regions = gcam.generate(target_layer=target_layer)
 
@@ -197,7 +198,8 @@ class KazutoMain:
         ### For ground truth class
         gcam2 = GradCAM(model=model)
         _2 = gcam2.forward(images)
-        ground_truth_id = torch.tensor(class_index).unsqueeze(dim=0).unsqueeze(dim=0).to(device)
+        ground_truth_id = torch.full((images.shape[0],1),class_index).to(device)
+        # ground_truth_id = torch.tensor(class_index).unsqueeze(dim=0).unsqueeze(dim=0).to(device)
         gcam2.backward(ids=ground_truth_id)
         regions = gcam2.generate(target_layer=target_layer)
 

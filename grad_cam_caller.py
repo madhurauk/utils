@@ -7,6 +7,7 @@ import glob
 import random
 from pathlib import Path
 import os.path as osp
+from PIL import Image, ImageDraw, ImageFont
 
 import sys
 sys.path.append('/srv/share3/mummettuguli3/code/')
@@ -15,6 +16,8 @@ from utils.image_helper import ImageHelper
 
 with open('imagenet_class_index.json') as f: #this is opening file in thesis folder
     data = json.load(f)
+
+font = ImageFont.truetype("/usr/share/fonts/truetype/lato/Lato-Medium.ttf", 18)
 
 class GCUtil:
     def __init__(self):
@@ -87,8 +90,9 @@ class GCUtil:
                     self.output_folder_paths_for_classes[class_name].append(image_folder_inside_class_folder_path) 
 
                     image = self.image_helper.open_image(j)
+                    image_copy = image.copy()
                     # image, raw_image = self.kazuto.preprocess(j)
-                    self.image_helper.add_text_save_file(image, class_name, osp.join(
+                    self.image_helper.add_text_save_file(image_copy, class_name, osp.join(
                         image_folder_inside_class_folder_path,
                         "{}.png".format(
                             class_name
@@ -102,6 +106,100 @@ class GCUtil:
 
                 class_folder_path = os.path.join(output_dir, class_folder_name)
 
-    def create_tiny_dataset(self):
-        #test
-        print("hello")
+    def initiate_create_gif(self, dataset, class_list):
+        if dataset == "imagenet":
+            for class_name in class_list:
+                output_paths = self.output_folder_paths_for_classes.get(class_name)
+                for j in output_paths:
+                    predicted_gcam_path = osp.join(
+                            j,
+                            'predicted_class'
+                            )
+                    # self.create_gif(predicted_gcam_path, osp.join(
+                    #         j,
+                    #         'predicted.gif'
+                    #         ))
+                    filenames = []
+                    files = []
+
+                    for i in os.listdir(predicted_gcam_path):
+                        filepath = os.path.join(predicted_gcam_path,i)
+                        if os.path.isfile(filepath) and '-gradcam-'in i:                                                                           
+                            files.append(filepath)
+                            filenames.append(i)
+
+                    files.sort()
+                    filenames.sort()
+
+                    frames = []
+
+                    for i,filename in enumerate(files):
+                        im = Image.open(filename)
+                        # draw = ImageDraw.Draw(im)
+                        # draw.text((0, 0),str(i+1)+":"+filename.split("-")[-1],(255,255,255),font=font)
+                        frames.append(im)
+
+                    frames[0].save(osp.join(
+                            j,
+                            'predicted.gif'
+                            ), format='GIF',
+                                append_images=frames[1:], save_all=True, duration=240, loop=0)
+
+                    ground_truth_gcam_path = osp.join(
+                            j,
+                            'ground_truth'
+                            )
+                    # self.create_gif(ground_truth_gcam_path, osp.join(
+                    #         j,
+                    #         'ground_truth.gif'
+                    #         ))
+                    filenames = []
+                    files = []
+
+                    for i in os.listdir(ground_truth_gcam_path):
+                        filepath = os.path.join(ground_truth_gcam_path,i)
+                        if os.path.isfile(filepath) and '-gradcam-'in i:                                                                           
+                            files.append(filepath)
+                            filenames.append(i)
+
+                    files.sort()
+                    filenames.sort()
+
+                    frames = []
+
+                    for i,filename in enumerate(files):
+                        im = Image.open(filename)
+                        # [draw = ImageDraw.Draw(im)
+                        # dr]aw.text((0, 0),str(i+1)+":"+filename.split("-")[-1],(255,255,255),font=font)
+                        frames.append(im)
+
+                    frames[0].save(osp.join(
+                            j,
+                            'ground_truth.gif'
+                            ), format='GIF',
+                                append_images=frames[1:], save_all=True, duration=240, loop=0)
+    
+    def create_gif(self, path, gif_filename):
+        filenames = []
+        files = []
+
+        for i in os.listdir(path):
+            filepath = os.path.join(path,i)
+            if os.path.isfile(filepath) and '-gradcam-'in i:                                                                           
+                files.append(filepath)
+                filenames.append(i)
+
+        files.sort()
+        filenames.sort()
+
+        frames = []
+
+        for i,filename in enumerate(files):
+            im = Image.open(filename)
+            draw = ImageDraw.Draw(im)
+            draw.text((0, 0),str(i+1)+":"+filename.split("-")[-1],(255,255,255),font=font)
+            frames.append(im)
+
+        frames[0].save(gif_filename, format='GIF',
+                    append_images=frames[1:], save_all=True, duration=240, loop=0)
+                    
