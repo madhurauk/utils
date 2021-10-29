@@ -178,6 +178,7 @@ class KazutoMain:
             regions = gcam.generate(target_layer=target_layer)
 
             for j in range(len(images)):
+                # pdb.set_trace()
                 print("\t#{}: {} ({:.5f})".format(j, classes[ids[j, i]], probs[j, i]))
 
                 # Grad-CAM

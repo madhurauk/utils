@@ -70,11 +70,25 @@ class GCUtil:
                   #select images for this class randomly  
                   class_folder_name = data[str(class_index)][0] # eg: n02007558
                   folder_files_pattern = os.path.join(valdir, class_folder_name, '*.*')
+                #   pdb.set_trace()
+                  random.seed(10)
                   image_paths = random.sample(glob.glob(folder_files_pattern),sample_count) # images selected randomly from the folder
                   self.image_paths_for_classes[class_name] = image_paths
-                
+                  
+                  #calculate timestamp
+                  import calendar
+                  import time
+                  
+                  # gmt stores current gmtime
+                  gmt = time.gmtime()
+                  print("gmt:-", gmt)
+                  
+                  # ts stores timestamp
+                  ts = calendar.timegm(gmt)
+                  print("timestamp:-", ts)
+
                   #create output folder for the class
-                  class_folder_path = os.path.join(output_dir, class_folder_name) # 'GRADCAM_MAPS/resnet18/n02007558'
+                  class_folder_path = os.path.join(output_dir, str(ts), class_folder_name) # 'GRADCAM_MAPS/resnet18/n02007558'
                   Path(class_folder_path).mkdir(parents=True, exist_ok=True)
 
                   #create folder for each image inside the class folder, then create 'predicted' and 'ground_truth' folder inside each folder
@@ -180,6 +194,8 @@ class GCUtil:
                                 append_images=frames[1:], save_all=True, duration=240, loop=0)
     
     def create_gif(self, path, gif_filename):
+        '''
+        not using this at the moment '''
         filenames = []
         files = []
 
