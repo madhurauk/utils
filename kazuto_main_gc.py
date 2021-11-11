@@ -28,6 +28,7 @@ from grad_cam import (
 )
 import pdb
 from PIL import Image, ImageDraw, ImageFont
+from GPUtil import showUtilization as gpu_usage
 
 # if a model includes LSTM, such as in image captioning,
 # torch.backends.cudnn.enabled = False
@@ -145,9 +146,13 @@ class KazutoMain:
 
         model.eval()
 
+        # print("Memory usage before load_images",)
+        # gpu_usage() 
         # Images
         images, raw_images = self.load_images(image_paths)
         images = torch.stack(images).to(device)
+        # print("Memory usage after load_images",)
+        # gpu_usage() 
 
         """
         Common usage:
@@ -168,14 +173,13 @@ class KazutoMain:
         ### For predicted class
         gcam = GradCAM(model=model)
         _ = gcam.forward(images)
-
         
         for i in range(topk):
 
             # Grad-CAM
             # pdb.set_trace()
             gcam.backward(ids=ids[:, [i]])
-            regions = gcam.generate(target_layer=target_layer)
+            regions = gcam.generate(target_layer=target_layer) 
 
             for j in range(len(images)):
                 # pdb.set_trace()
@@ -195,14 +199,14 @@ class KazutoMain:
                     raw_image=raw_images[j],
                     text=epoch+":"+classes[ids[j, i]]
                 )
-
+            del regions
         ### For ground truth class
         gcam2 = GradCAM(model=model)
-        _2 = gcam2.forward(images)
+        _2 = gcam2.forward(images) 
         ground_truth_id = torch.full((images.shape[0],1),class_index).to(device)
         # ground_truth_id = torch.tensor(class_index).unsqueeze(dim=0).unsqueeze(dim=0).to(device)
-        gcam2.backward(ids=ground_truth_id)
-        regions = gcam2.generate(target_layer=target_layer)
+        gcam2.backward(ids=ground_truth_id) 
+        regions = gcam2.generate(target_layer=target_layer) 
 
         for j in range(len(images)):
             # print("\t#{}: {} ({:.5f})".format(j, classes[ids[j, i]], probs[j, i]))
@@ -220,3 +224,15 @@ class KazutoMain:
                 raw_image=raw_images[j],
                 text=epoch+":"+class_name
             )
+        del images
+        del raw_images
+        del bp
+        del probs
+        del ids
+        del regions
+        del gcam
+        del gcam2
+        del _2
+        del _
+        torch.cuda.empty_cache()
+        # print("memory summary:",torch.cuda.memory_summary(device=None, abbreviated=False))

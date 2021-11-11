@@ -17,6 +17,9 @@ from utils.image_helper import ImageHelper
 with open('imagenet_class_index.json') as f: #this is opening file in thesis folder
     data = json.load(f)
 
+with open('dataset_subset.json') as f2: #this is opening file in thesis folder
+    subset_image_paths = json.load(f2)
+
 font = ImageFont.truetype("/usr/share/fonts/truetype/lato/Lato-Medium.ttf", 18)
 
 class GCUtil:
@@ -25,40 +28,96 @@ class GCUtil:
         self.output_folder_paths_for_classes = {}
         self.kazuto = KazutoMain()
         self.image_helper = ImageHelper()
+    
+    def create_tiny_dataset(self, valdir, sample_count):
+        for folder in os.listdir(valdir):
+            folder_path = os.path.join(valdir, folder, '*.*')
+            image_paths = random.sample(glob.glob(folder_path),sample_count)
+            self.image_paths_for_classes[folder] = image_paths #folder is the class_name
+        with open('dataset_subset.json', 'w', encoding='utf-8') as f:
+            json.dump(self.image_paths_for_classes, f, ensure_ascii=False, indent=4)
 
     def generate_grad_cam(self, model, arch, epoch: str, class_list, layer_name, dataset):
         # eg output_dir : 'GRADCAM_MAPS/resnet18/'
-        # kazuto = KazutoMain()
         classes = self.kazuto.get_classtable(dataset)
-        # pdb.set_trace()
         if dataset == "imagenet":
             for class_name in class_list:
                 class_index = classes.index(class_name)
                 image_paths = self.image_paths_for_classes.get(class_name)
+                pdb.set_trace()
                 output_paths = self.output_folder_paths_for_classes.get(class_name)
-                # if image_paths is None:
-                #     class_folder_name = data[str(class_index)][0] # eg: n02007558
-                #     folder_files_pattern = os.path.join(valdir, class_folder_name, '*.*')
-                #     image_paths = random.sample(glob.glob(folder_files_pattern),2) # images selected randomly from the folder
-                #     class_folder_path = os.path.join(output_dir, class_folder_name) # 'GRADCAM_MAPS/resnet18/n02007558'
-                #     Path(class_folder_path).mkdir(parents=True, exist_ok=True)
-                #     image_folder_inside_class_folder_list = []
-                #     self.image_paths_for_classes[class_name] = image_paths
-                    
-                # for j in image_paths:
-                #     image_name = j.split('/')[-1].split(".")[0] # 'ILSVRC2012_val_00007619'
-                #     image_folder_inside_class_folder_path = os.path.join(class_folder_path, image_name) # 'GRADCAM_MAPS/resnet18/n02007558/ILSVRC2012_val_00007619'
-                #     image_predicted_class_folder = os.path.join(image_folder_inside_class_folder_path, 'predicted_class') # 'GRADCAM_MAPS/resnet18/n02007558/ILSVRC2012_val_00007619/predicted_class'
-                #     image_ground_truth_folder = os.path.join(image_folder_inside_class_folder_path, 'ground_truth') # 'GRADCAM_MAPS/resnet18/n02007558/ILSVRC2012_val_00007619/ground_truth'
-                #     Path(image_folder_inside_class_folder_path).mkdir(parents=True, exist_ok=True)
-                #     Path(image_predicted_class_folder).mkdir(parents=True, exist_ok=True)
-                #     Path(image_ground_truth_folder).mkdir(parents=True, exist_ok=True)
-                #     image_folder_inside_class_folder_list.append(image_folder_inside_class_folder_path)
+
                 if int(epoch)<10:
                     epoch = '0'+epoch
-                # kazuto.demo1(image_paths, layer_name, model, arch+"-{ep:02}".format(ep=epoch), image_folder_inside_class_folder_list, dataset, class_index, class_name)
                 
+                # kazuto.demo1(image_paths, layer_name, model, arch+"-{ep:02}".format(ep=epoch), image_folder_inside_class_folder_list, dataset, class_index, class_name)
                 self.kazuto.demo1(image_paths, layer_name, model, arch+"-"+epoch, output_paths, dataset, class_index, class_name, epoch)
+                # for image_path in image_paths:
+                #     self.kazuto.demo1(image_path, layer_name, model, arch+"-"+epoch, output_paths, dataset, class_index, class_name, epoch)
+    
+    def generate_grad_cam_2(self, model, arch, epoch: str, class_list, layer_name, dataset):
+        # eg output_dir : 'GRADCAM_MAPS/resnet18/'
+        classes = self.kazuto.get_classtable(dataset)
+        if dataset == "imagenet":
+            for class_name in class_list:
+                class_index = classes.index(class_name)
+                class_folder_name = data[str(class_index)][0]
+                image_paths = self.image_paths_for_classes.get(class_folder_name)
+                output_paths = self.output_folder_paths_for_classes.get(class_name)
+
+                if int(epoch)<10:
+                    epoch = '0'+epoch
+                
+                # kazuto.demo1(image_paths, layer_name, model, arch+"-{ep:02}".format(ep=epoch), image_folder_inside_class_folder_list, dataset, class_index, class_name)
+                self.kazuto.demo1(image_paths, layer_name, model, arch+"-"+epoch, output_paths, dataset, class_index, class_name, epoch)
+                # for image_path in image_paths:
+                #     self.kazuto.demo1(image_path, layer_name, model, arch+"-"+epoch, output_paths, dataset, class_index, class_name, epoch)
+
+    def create_output_folder_2(self, output_dir, dataset, class_list):
+        classes = self.kazuto.get_classtable(dataset)
+        self.image_paths_for_classes = subset_image_paths
+        if dataset == "imagenet":
+            for class_name in class_list:
+                class_index = classes.index(class_name)
+                class_folder_name = data[str(class_index)][0] # eg: n02007558
+                image_paths = subset_image_paths[str(class_folder_name)]
+
+                #calculate timestamp
+                # import calendar
+                # import time
+                
+                # # gmt stores current gmtime
+                # gmt = time.gmtime()
+                # print("gmt:-", gmt)
+                
+                # # ts stores timestamp
+                # ts = calendar.timegm(gmt)
+                # print("timestamp:-", ts)
+
+                #create output folder for the class
+                class_folder_path = os.path.join(output_dir, class_folder_name) # 'GRADCAM_MAPS/resnet18/folder1/n02007558'
+                Path(class_folder_path).mkdir(parents=True, exist_ok=True)
+
+                #create folder for each image inside the class folder, then create 'predicted' and 'ground_truth' folder inside each folder
+                self.output_folder_paths_for_classes[class_name] = []
+                for j in image_paths:
+                    image_name = j.split('/')[-1].split(".")[0] # 'ILSVRC2012_val_00007619'
+                    image_folder_inside_class_folder_path = os.path.join(class_folder_path, image_name) # 'GRADCAM_MAPS/resnet18/n02007558/ILSVRC2012_val_00007619'
+                    image_predicted_class_folder = os.path.join(image_folder_inside_class_folder_path, 'predicted_class') # 'GRADCAM_MAPS/resnet18/n02007558/ILSVRC2012_val_00007619/predicted_class'
+                    image_ground_truth_folder = os.path.join(image_folder_inside_class_folder_path, 'ground_truth') # 'GRADCAM_MAPS/resnet18/n02007558/ILSVRC2012_val_00007619/ground_truth'
+                    Path(image_folder_inside_class_folder_path).mkdir(parents=True, exist_ok=True)
+                    Path(image_predicted_class_folder).mkdir(parents=True, exist_ok=True)
+                    Path(image_ground_truth_folder).mkdir(parents=True, exist_ok=True)
+                    self.output_folder_paths_for_classes[class_name].append(image_folder_inside_class_folder_path) 
+
+                    image = self.image_helper.open_image(j)
+                    image_copy = image.copy()
+                    self.image_helper.add_text_save_file(image_copy, class_name, osp.join(
+                        image_folder_inside_class_folder_path,
+                        "{}.png".format(
+                            class_name
+                        ),
+                    ))
 
     def create_output_folder(self, output_dir, dataset, class_list, valdir, sample_count):
         classes = self.kazuto.get_classtable(dataset)
@@ -70,7 +129,6 @@ class GCUtil:
                   #select images for this class randomly  
                   class_folder_name = data[str(class_index)][0] # eg: n02007558
                   folder_files_pattern = os.path.join(valdir, class_folder_name, '*.*')
-                #   pdb.set_trace()
                   random.seed(10)
                   image_paths = random.sample(glob.glob(folder_files_pattern),sample_count) # images selected randomly from the folder
                   self.image_paths_for_classes[class_name] = image_paths
@@ -88,7 +146,7 @@ class GCUtil:
                   print("timestamp:-", ts)
 
                   #create output folder for the class
-                  class_folder_path = os.path.join(output_dir, str(ts), class_folder_name) # 'GRADCAM_MAPS/resnet18/n02007558'
+                  class_folder_path = os.path.join(output_dir, str(ts), class_folder_name) # 'GRADCAM_MAPS/resnet18/timestamp/n02007558'
                   Path(class_folder_path).mkdir(parents=True, exist_ok=True)
 
                   #create folder for each image inside the class folder, then create 'predicted' and 'ground_truth' folder inside each folder
@@ -105,7 +163,6 @@ class GCUtil:
 
                     image = self.image_helper.open_image(j)
                     image_copy = image.copy()
-                    # image, raw_image = self.kazuto.preprocess(j)
                     self.image_helper.add_text_save_file(image_copy, class_name, osp.join(
                         image_folder_inside_class_folder_path,
                         "{}.png".format(
@@ -149,8 +206,6 @@ class GCUtil:
 
                     for i,filename in enumerate(files):
                         im = Image.open(filename)
-                        # draw = ImageDraw.Draw(im)
-                        # draw.text((0, 0),str(i+1)+":"+filename.split("-")[-1],(255,255,255),font=font)
                         frames.append(im)
 
                     frames[0].save(osp.join(
@@ -183,8 +238,6 @@ class GCUtil:
 
                     for i,filename in enumerate(files):
                         im = Image.open(filename)
-                        # [draw = ImageDraw.Draw(im)
-                        # dr]aw.text((0, 0),str(i+1)+":"+filename.split("-")[-1],(255,255,255),font=font)
                         frames.append(im)
 
                     frames[0].save(osp.join(

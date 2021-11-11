@@ -10,5 +10,6 @@ class ImageHelper:
         fontScale = 0.5
         color = (0, 0, 0)                                                                                                                                              
         thickness = 1
-        image = cv2.putText(image, text, org, font, fontScale, color, thickness, cv2.LINE_AA)
-        cv2.imwrite(filename, image)
+        resized_image = cv2.resize(image, (224,224))
+        resized_image_with_text = cv2.putText(resized_image, text, org, font, fontScale, color, thickness, cv2.LINE_AA)
+        cv2.imwrite(filename, resized_image_with_text)
