@@ -19,7 +19,7 @@ import torch
 import torch.nn.functional as F
 from torchvision import models, transforms
 
-from grad_cam import (
+from utils.grad_cam import (
     BackPropagation,
     Deconvnet,
     GradCAM,
