@@ -1,5 +1,7 @@
 import torch
 import pdb
+from kazuto_main_gc import KazutoMain
+import pandas as pd
 
 class Accuracy:
     def per_class_accuracy(self, pred_stack, target_stack, calculate_per_class_acc, calculate_overall_acc, num_classes, resume_model_path, save_path):
@@ -37,3 +39,36 @@ class Accuracy:
                 res.append(overall_accuracy.item())
         if calculate_overall_acc:
             torch.save(res, save_path+'overall/top'+str(topk[0])+'_top'+str(topk[1])+'_accuracy_epoch'+resume_model_path.split("_")[3])
+
+    def get_accuracy_df(self, path, filename):
+        kazuto = KazutoMain()
+        classes = kazuto.get_classtable()
+        is_first = True
+        for i in range(1,91):
+            x=torch.load(path+filename.format(i))
+            if is_first:
+                stack = x
+                is_first = False
+            else:
+                stack = torch.vstack((stack,x))
+
+        accuracy_stack = stack.numpy()
+        px2 = pd.DataFrame(accuracy_stack)
+
+        px2.columns = classes
+        return px2
+    
+    def get_stable_classes_after_epoch_number(self, accuracy_threshold, df):
+        # eg accuracy_threshold = 0.9
+        column_names_dict = {}
+        for i in range(10,90,10):
+            sub_df = df.iloc[i:]
+            filter = (sub_df>=accuracy_threshold).all()
+            column_names = sub_df.loc[:,filter].columns
+            column_names_dict[i] = column_names.tolist()
+        
+        print("Between 10 and 20",  set(column_names_dict[10]))
+        for i in range(10,80,10):
+            print("Between", i+10, "and", (i+20),  set(column_names_dict[i+10])-set(column_names_dict[i]))
+
+        
